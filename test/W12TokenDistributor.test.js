@@ -10,41 +10,26 @@ require('chai')
   .should();
 
 const W12Token = artifacts.require('W12Token');
-const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 const W12TokenDistributor = artifacts.require('W12TokenDistributor');
 
 contract('W12TokenDistributor', async (accounts) => {
     let token;
-
     let sut;
-    const receivers = accounts.slice(1);
-    let owner = accounts[0];
 
-    before(async () => {
-        token = await W12Token.new();
+    beforeEach(async () => {
+        sut = await W12TokenDistributor.new();
+        token = W12Token.at(await sut.token());
     });
 
-    describe('when correct token supplied', async () => {
-        beforeEach(async () => {
-            sut = await W12TokenDistributor.new(token.address);
+    describe('transfer token ownership', async () => {
+        it('should return ownership', async () => {
+            await sut.transferTokenOwnership().should.be.fulfilled;
+            (await token.owner()).should.be.equal(accounts[0]);
         });
 
-        it('should set token address', async () => {
-            (await sut.token()).should.be.equal(token.address);
-        });
-
-        it('should set owner', async () => {
-            (await sut.owner()).should.be.equal(owner);
-        });
-    });
-
-    describe('when incorrect token supplied', async () => {
-        it('should check if token address presented', async () => {
-            await W12TokenDistributor.new().should.be.rejected;
-        });
-
-        it('should reject zero token address', async () => {
-            await W12TokenDistributor.new(ZERO_ADDRESS).should.be.rejectedWith(EVMRevert);
+        it('should fail to return ownership when called by not an owner', async () => {
+            await sut.transferTokenOwnership({from: accounts[1]}).should.be.rejected;
+            (await token.owner()).should.be.not.equal(accounts[0]);
         });
     });
 });

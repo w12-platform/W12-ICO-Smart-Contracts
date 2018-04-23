@@ -1,6 +1,6 @@
 /* solium-disable security/no-block-members */
 
-pragma solidity ^0.4.21;
+pragma solidity ^0.4.23;
 
 import "./ERC20Basic.sol";
 import "./SafeERC20.sol";

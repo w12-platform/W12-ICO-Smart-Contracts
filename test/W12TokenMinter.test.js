@@ -1,8 +1,4 @@
-import EVMRevert from './helpers/EVMRevert';
-import latestTime from './helpers/latestTime';
-import { increaseTimeTo, duration } from './helpers/increaseTime';
-
-const BigNumber = web3.BigNumber;
+const { BigNumber } = web3;
 
 require('chai')
   .use(require('chai-as-promised'))
@@ -24,10 +20,10 @@ contract('W12TokenMinter', (accounts) => {
     };
     let owner = accounts[0];
 
-    describe('when not owning a token', async () => {
+    describe('when called not by an owner', () => {
         beforeEach(async () => {
-            token = await W12Token.new();
-            sut = await W12TokenMinter.new(token.address);
+            sut = await W12TokenMinter.new({from: accounts[1]});
+            token = W12Token.at(await sut.token());
         });
 
         it('should fail to mint', async () => {
@@ -44,15 +40,9 @@ contract('W12TokenMinter', (accounts) => {
     });
 
     describe('when owning a token', async () => {
-        const initSut = async () => {
-            token = await W12Token.new();
-            sut = await W12TokenMinter.new(token.address);
-
-            await token.transferOwnership(sut.address);
-        };
-
         beforeEach(async () => {
-            await initSut();
+            sut = await W12TokenMinter.new();
+            token = W12Token.at(await sut.token());
         });
 
         describe('mint', async () => {
@@ -127,25 +117,33 @@ contract('W12TokenMinter', (accounts) => {
             });
 
             it('should be able to mint cap number of tokens in one transaction', async () => {
-                const txId = 4;
                 const cap = (await token.cap()).toNumber();
 
-                await sut.bulkMint([txId], [accounts[4]], [cap]).should.be.fulfilled;
+                await sut.bulkMint([4], [accounts[4]], [cap]).should.be.fulfilled;
+            });
 
-                (await sut.isTransactionSuccessful(txId)).should.be.equal(true);
+            it('should record processed transactions', async () => {
+                await sut.bulkMint(testData.ids, testData.receivers, testData.amounts).should.be.fulfilled;
+
+                for (let index = 0; index < testData.receivers.length; index++) {
+                    (await sut.isTransactionSuccessful(testData.ids[index])).should.be.equal(true);
+                }
+            });
+
+            describe('should not process transaction with known id', async () => {
+                it('when it supplied in different batches', async () => {
+                    await sut.bulkMint([4], [accounts[4]], [1000]).should.be.fulfilled;
+                    await sut.bulkMint([4], [accounts[4]], [1000]).should.be.fulfilled;
+    
+                    (await token.balanceOf(accounts[4])).should.bignumber.equal(1000);
+                });
+
+                it('when it supplied in the batch', async () => {
+                    await sut.bulkMint([4, 4], [accounts[2], accounts[4]], [1000, 2222]).should.be.fulfilled;
+    
+                    (await token.balanceOf(accounts[2])).should.bignumber.equal(1000);
+                });
             });
         });
-
-        describe('transfer token ownership', async () => {
-            it('should return ownership', async () => {
-                await sut.transferTokenOwnership().should.be.fulfilled;
-                (await token.owner()).should.be.equal(owner);
-            });
-
-            it('should fail to return ownership when called by not an owner', async () => {
-                await sut.transferTokenOwnership({from: accounts[1]}).should.be.rejected;
-                (await token.owner()).should.be.not.equal(owner);
-            });
-        })
     });
 });
