@@ -102,7 +102,7 @@ contract W12Crowdsale is W12TokenDistributor {
         token.transfer(owner, token.balanceOf(address(this)));
     }
 
-    function advanceStage(uint tokensBought, Stage currentStage) {
+    function advanceStage(uint tokensBought, Stage currentStage) internal {
         if(currentStage == Stage.Presale) {
             if(tokensBought < presaleTokenBalance)
             {
@@ -127,5 +127,11 @@ contract W12Crowdsale is W12TokenDistributor {
         }
 
         revert();
+    }
+
+    function withdrawFunds() external onlyOwner {
+        require(getStage() == Stage.Inactive);
+        
+        owner.transfer(address(this).balance);
     }
 }

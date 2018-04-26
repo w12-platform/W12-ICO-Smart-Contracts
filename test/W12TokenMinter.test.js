@@ -27,7 +27,7 @@ contract('W12TokenMinter', (accounts) => {
         });
 
         it('should fail to mint', async () => {
-            await sut.bulkMint(testData.ids, testData.receivers, testData.amounts).should.be.rejected;
+        await sut.bulkMint(testData.ids, testData.receivers, testData.amounts).should.be.rejected;
 
             for (let index = 0; index < testData.receivers.length; index++) {
                 (await token.balanceOf(testData.receivers[index])).should.bignumber.equal(0);
