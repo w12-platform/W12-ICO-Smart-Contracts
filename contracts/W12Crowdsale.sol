@@ -5,13 +5,13 @@ import "./W12TokenMinter.sol";
 
 
 contract W12Crowdsale is W12TokenDistributor {
-    uint public presaleStartBlock = 5555596;
-    uint public presaleEndBlock = 5816235;
-    uint public crowdsaleStartBlock = 5907156;
-    uint public crowdsaleEndBlock = 6095058;
+    uint public presaleStartBlock = 5646675;
+    uint public presaleEndBlock = 5838497;
+    uint public crowdsaleStartBlock = 6054299;
+    uint public crowdsaleEndBlock = 6431950;
 
-    uint public presaleTokenBalance = 500 * (10 ** 24);
-    uint public crowdsaleTokenBalance = 2 * (10 ** 27);
+    uint public presaleTokenBalance = 20 * (10 ** 24);
+    uint public crowdsaleTokenBalance = 80 * (10 ** 24);
 
     enum Stage { Inactive, Presale, Crowdsale }
 
@@ -22,17 +22,17 @@ contract W12Crowdsale is W12TokenDistributor {
         // Tokens to sell during the first two phases of ICO
         token.mint(address(this), presaleTokenBalance + crowdsaleTokenBalance);
         // Team, advisors, and founders
-        token.mint(address(0x2), 1.5 * (10 ** 9) * tokenDecimalsMultiplicator);
+        token.mint(address(0x2), 60 * (10 ** 6) * tokenDecimalsMultiplicator);
         // Reserve fund
-        token.mint(address(0x3), 1.5 * (10 ** 9) * tokenDecimalsMultiplicator);
+        token.mint(address(0x3), 60 * (10 ** 6) * tokenDecimalsMultiplicator);
         // Seed investors
-        token.mint(address(0x4), 0.5 * (10 ** 9) * tokenDecimalsMultiplicator);
+        token.mint(address(0x4), 20 * (10 ** 6) * tokenDecimalsMultiplicator);
         // Partners
-        token.mint(address(0x5), 0.2 * (10 ** 9) * tokenDecimalsMultiplicator);
+        token.mint(address(0x5),  8 * (10 ** 6) * tokenDecimalsMultiplicator);
         // Bounty and support of ecosystem
-        token.mint(address(0x6), 0.2 * (10 ** 9) * tokenDecimalsMultiplicator);
+        token.mint(address(0x6),  8 * (10 ** 6) * tokenDecimalsMultiplicator);
         // Airdrop
-        token.mint(address(0x7), 0.1 * (10 ** 9) * tokenDecimalsMultiplicator);
+        token.mint(address(0x7),  4 * (10 ** 6) * tokenDecimalsMultiplicator);
     }
 
     function () payable external {
@@ -54,14 +54,14 @@ contract W12Crowdsale is W12TokenDistributor {
             currentBlock = blockNumber - presaleStartBlock;
             uint presaleCoef = currentBlock * 100 / (presaleEndBlock - presaleStartBlock);
             
-            return 10000000000000 + 2000000000000 * presaleCoef / 100;
+            return 262500000000000 + 35000000000000 * presaleCoef / 100;
         }
         
         if(currentStage == Stage.Crowdsale) {
             currentBlock = blockNumber - crowdsaleStartBlock;
             uint crowdsaleCoef = currentBlock * 100 / (crowdsaleEndBlock - crowdsaleStartBlock);
             
-            return 12750000000000 + 2250000000000 * crowdsaleCoef / 100;
+            return 315000000000000 + 35000000000000 * crowdsaleCoef / 100;
         }
         
 
@@ -130,8 +130,22 @@ contract W12Crowdsale is W12TokenDistributor {
     }
 
     function withdrawFunds() external onlyOwner {
-        require(getStage() == Stage.Inactive);
-        
         owner.transfer(address(this).balance);
+    }
+
+    function setPresaleStartBlock(uint32 _presaleStartBlock) external onlyOwner {
+        presaleStartBlock = _presaleStartBlock;
+    }
+
+    function setPresaleEndBlock(uint32 _presaleEndBlock) external onlyOwner {
+        presaleEndBlock = _presaleEndBlock;
+    }
+
+    function setCrowdsaleStartBlock(uint32 _crowdsaleStartBlock) external onlyOwner {
+        crowdsaleStartBlock = _crowdsaleStartBlock;
+    }
+
+    function setCrowdsaleEndBlock(uint32 _crowdsaleEndBlock) external onlyOwner {
+        crowdsaleEndBlock = _crowdsaleEndBlock;
     }
 }

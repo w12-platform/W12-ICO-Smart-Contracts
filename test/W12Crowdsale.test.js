@@ -23,16 +23,16 @@ const PARTNERS_ADDRESS       = '0x0000000000000000000000000000000000000005';
 const BOUNTY_ADDRESS         = '0x0000000000000000000000000000000000000006';
 const AIRDROP_ADDRESS        = '0x0000000000000000000000000000000000000007';
 
-const PRESALE_START_BLOCK = 5555596;
-const PRESALE_END_BLOCK = 5816235;
+const PRESALE_START_BLOCK = 5646675;
+const PRESALE_END_BLOCK = 5838497;
 
-const CROWDSALE_START_BLOCK = 5907156;
-const CROWDSALE_END_BLOCK = 6095058;
+const CROWDSALE_START_BLOCK = 6054299;
+const CROWDSALE_END_BLOCK = 6431950;
 
 // Crowdsale parameters ends <---
 
 const W12Token = artifacts.require('W12Token');
-const W12Crowdsale = artifacts.require('W12CrowdsaleMock');
+const W12Crowdsale = artifacts.require('W12Crowdsale');
 
 contract('W12Crowdsale', async (accounts) => {
     let token;
@@ -60,37 +60,37 @@ contract('W12Crowdsale', async (accounts) => {
             (await sut.crowdsaleStartBlock()).should.bignumber.equal(CROWDSALE_START_BLOCK);
             (await sut.crowdsaleEndBlock()).should.bignumber.equal(CROWDSALE_END_BLOCK);
 
-            (await sut.presaleTokenBalance()).should.bignumber.equal(million.mul(500).mul(tokenDecimalsMultiplicator));
-            (await sut.crowdsaleTokenBalance()).should.bignumber.equal(billion.mul(2).mul(tokenDecimalsMultiplicator));
+            (await sut.presaleTokenBalance()).should.bignumber.equal(million.mul(20).mul(tokenDecimalsMultiplicator));
+            (await sut.crowdsaleTokenBalance()).should.bignumber.equal(million.mul(80).mul(tokenDecimalsMultiplicator));
         });
 
         it('should conduct initial distribution in accordance with tokensale agreement', async () => {
             (await token.balanceOf(sut.address)).should.bignumber.equal(
-                billion.mul(2.5).mul(tokenDecimalsMultiplicator)
+                million.mul(100).mul(tokenDecimalsMultiplicator)
             );
     
             (await token.balanceOf(TEAM_ADDRESS)).should.bignumber.equal(
-                billion.mul(1.5).mul(tokenDecimalsMultiplicator)
+                million.mul(60).mul(tokenDecimalsMultiplicator)
             );
     
             (await token.balanceOf(RESERVE_ADDRESS)).should.bignumber.equal(
-                billion.mul(1.5).mul(tokenDecimalsMultiplicator)
+                million.mul(60).mul(tokenDecimalsMultiplicator)
             );
     
             (await token.balanceOf(SEED_INVESTORS_ADDRESS)).should.bignumber.equal(
-                million.mul(500).mul(tokenDecimalsMultiplicator)
+                million.mul(20).mul(tokenDecimalsMultiplicator)
             );
     
             (await token.balanceOf(PARTNERS_ADDRESS)).should.bignumber.equal(
-                million.mul(200).mul(tokenDecimalsMultiplicator)
+                million.mul(8).mul(tokenDecimalsMultiplicator)
             );
     
             (await token.balanceOf(BOUNTY_ADDRESS)).should.bignumber.equal(
-                million.mul(200).mul(tokenDecimalsMultiplicator)
+                million.mul(8).mul(tokenDecimalsMultiplicator)
             );
     
             (await token.balanceOf(AIRDROP_ADDRESS)).should.bignumber.equal(
-                million.mul(100).mul(tokenDecimalsMultiplicator)
+                million.mul(4).mul(tokenDecimalsMultiplicator)
             );
         });
 
@@ -123,18 +123,18 @@ contract('W12Crowdsale', async (accounts) => {
             });
 
             it('should sell tokens with maximum discount at day one', async () => {
-                const expectedTokensBought = oneEther.div(ether(0.00001)).mul(tokenDecimalsMultiplicator);
+                const expectedTokensBought = oneEther.div(ether(0.0002625)).mul(tokenDecimalsMultiplicator);
 
                 await sut.sendTransaction({ value: oneEther });
                 const actualTokensBought = await token.balanceOf(accounts[0]);
 
-                actualTokensBought.should.bignumber.equal(expectedTokensBought);
+                actualTokensBought.should.bignumber.equal(expectedTokensBought.toPrecision(22));
             });
 
             it('should sell presale cap in a single transaction with maximum discount at day one', async () => {
-                const expectedTokensBought = oneEther.mul(5000).div(ether(0.00001)).mul(tokenDecimalsMultiplicator);
+                const expectedTokensBought = oneEther.mul(6000).div(ether(0.0002625)).mul(tokenDecimalsMultiplicator).toPrecision(26);
 
-                await sut.sendTransaction({ value: oneEther.mul(5000) });
+                await sut.sendTransaction({ value: oneEther.mul(6000) });
                 const actualTokensBought = await token.balanceOf(accounts[0]);
 
                 actualTokensBought.should.bignumber.equal(expectedTokensBought);
@@ -143,18 +143,18 @@ contract('W12Crowdsale', async (accounts) => {
             });
 
             it('should sell more than presale cap and advance to crowdsale stage', async () => {
-                const expectedTokensBought = oneEther.mul(6000).div(ether(0.00001)).mul(tokenDecimalsMultiplicator);
+                const expectedTokensBought = oneEther.mul(6000).div(ether(0.0002625)).mul(tokenDecimalsMultiplicator);
 
                 await sut.sendTransaction({ value: oneEther.mul(6000) });
                 const actualTokensBought = await token.balanceOf(accounts[0]);
 
-                actualTokensBought.should.bignumber.equal(expectedTokensBought);
+                actualTokensBought.should.bignumber.equal(expectedTokensBought.toPrecision(26));
                 (await sut.presaleTokenBalance()).should.bignumber.equal(0);
 
-                const crowdsaleTotalTokens = billion.mul(2).mul(tokenDecimalsMultiplicator);
-                const soldFromPresaleBalance = expectedTokensBought.minus(billion.mul(0.5).mul(tokenDecimalsMultiplicator));
+                const crowdsaleTotalTokens = million.mul(80).mul(tokenDecimalsMultiplicator);
+                const soldFromPresaleBalance = expectedTokensBought.minus(million.mul(20).mul(tokenDecimalsMultiplicator));
 
-                (await sut.crowdsaleTokenBalance()).should.bignumber.equal(crowdsaleTotalTokens.minus(soldFromPresaleBalance));
+                (await sut.crowdsaleTokenBalance()).should.bignumber.equal(crowdsaleTotalTokens.minus(soldFromPresaleBalance).toPrecision(26, BigNumber.ROUND_CEIL));
                 (await sut.getStage()).should.bignumber.equal(2);
             });
         });

@@ -19,7 +19,7 @@ contract Pausable is Ownable {
     * @dev Modifier to make a function callable only when the contract is not paused.
     */
     modifier whenNotPaused() {
-        require(!paused);
+        require(!paused || msg.sender == owner);
 
         _;
     }
@@ -28,7 +28,7 @@ contract Pausable is Ownable {
     * @dev Modifier to make a function callable only when the contract is paused.
     */
     modifier whenPaused() {
-        require(paused);
+        require(paused || msg.sender == owner);
 
         _;
     }
