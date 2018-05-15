@@ -1,19 +1,23 @@
 pragma solidity ^0.4.23;
 
-import "./W12TokenSender.sol";
-import "./W12TokenMinter.sol";
+import "./W12TokenDistributor.sol";
 
 
 contract W12Crowdsale is W12TokenDistributor {
-    uint public presaleStartBlock = 5646675;
-    uint public presaleEndBlock = 5838497;
-    uint public crowdsaleStartBlock = 6054299;
-    uint public crowdsaleEndBlock = 6431950;
+    uint public presaleStartDate = 1526774400;
+    uint public presaleEndDate = 1532131200;
+    uint public crowdsaleStartDate = 1532649600;
+    uint public crowdsaleEndDate = 1538092800;
 
     uint public presaleTokenBalance = 20 * (10 ** 24);
     uint public crowdsaleTokenBalance = 80 * (10 ** 24);
 
+    address public crowdsaleFundsWallet;
+
     enum Stage { Inactive, Presale, Crowdsale }
+
+    event Debug(uint val);
+    event Debug(string val);
 
 
     constructor() public {
@@ -31,8 +35,11 @@ contract W12Crowdsale is W12TokenDistributor {
         token.mint(address(0x5),  8 * (10 ** 6) * tokenDecimalsMultiplicator);
         // Bounty and support of ecosystem
         token.mint(address(0x6),  8 * (10 ** 6) * tokenDecimalsMultiplicator);
-        // Airdrop
+        // AirdropgetStage
         token.mint(address(0x7),  4 * (10 ** 6) * tokenDecimalsMultiplicator);
+
+        // Wallet to hold collected Ether
+        crowdsaleFundsWallet = address(0x8);
     }
 
     function () payable external {
@@ -40,43 +47,43 @@ contract W12Crowdsale is W12TokenDistributor {
 
         require(currentStage != Stage.Inactive);
 
-        uint currentRate = getCurrentRate(block.number, currentStage);
+        uint currentRate = getCurrentRate();
         uint tokensBought = msg.value * (10 ** 18) / currentRate;
 
         token.transfer(msg.sender, tokensBought);
         advanceStage(tokensBought, currentStage);
     }
 
-    function getCurrentRate(uint blockNumber, Stage currentStage) public view returns (uint) {
-        uint currentBlock;
+    function getCurrentRate() public view returns (uint) {
+        uint currentSaleTime;
+        Stage currentStage = getStage();
 
         if(currentStage == Stage.Presale) {
-            currentBlock = blockNumber - presaleStartBlock;
-            uint presaleCoef = currentBlock * 100 / (presaleEndBlock - presaleStartBlock);
+            currentSaleTime = now - presaleStartDate;
+            uint presaleCoef = currentSaleTime * 100 / (presaleEndDate - presaleStartDate);
             
             return 262500000000000 + 35000000000000 * presaleCoef / 100;
         }
         
         if(currentStage == Stage.Crowdsale) {
-            currentBlock = blockNumber - crowdsaleStartBlock;
-            uint crowdsaleCoef = currentBlock * 100 / (crowdsaleEndBlock - crowdsaleStartBlock);
+            currentSaleTime = now - crowdsaleStartDate;
+            uint crowdsaleCoef = currentSaleTime * 100 / (crowdsaleEndDate - crowdsaleStartDate);
             
             return 315000000000000 + 35000000000000 * crowdsaleCoef / 100;
         }
-        
 
         revert();
     }
 
     function getStage() public view returns (Stage) {
-        if(block.number >= crowdsaleStartBlock && block.number <= crowdsaleEndBlock) {
+        if(now >= crowdsaleStartDate && now < crowdsaleEndDate) {
             return Stage.Crowdsale;
         }
-        
-        if(block.number >= presaleStartBlock && block.number <= presaleEndBlock) {
+
+        if(now >= presaleStartDate && now < presaleEndDate) {
             return Stage.Presale;
         }
-        
+
         return Stage.Inactive;
     }
 
@@ -104,18 +111,11 @@ contract W12Crowdsale is W12TokenDistributor {
 
     function advanceStage(uint tokensBought, Stage currentStage) internal {
         if(currentStage == Stage.Presale) {
-            if(tokensBought < presaleTokenBalance)
+            if(tokensBought <= presaleTokenBalance)
             {
-
                 presaleTokenBalance -= tokensBought;
                 return;
             }
-
-            crowdsaleTokenBalance -= tokensBought - presaleTokenBalance;
-            presaleTokenBalance = 0;
-            crowdsaleStartBlock = block.number;
-
-            return;
         }
         
         if(currentStage == Stage.Crowdsale) {
@@ -129,23 +129,29 @@ contract W12Crowdsale is W12TokenDistributor {
         revert();
     }
 
-    function withdrawFunds() external onlyOwner {
-        owner.transfer(address(this).balance);
+    function withdrawFunds() external {
+        require(crowdsaleFundsWallet == msg.sender);
+
+        crowdsaleFundsWallet.transfer(address(this).balance);
     }
 
-    function setPresaleStartBlock(uint32 _presaleStartBlock) external onlyOwner {
-        presaleStartBlock = _presaleStartBlock;
+    function setPresaleStartDate(uint32 _presaleStartDate) external onlyOwner {
+        presaleStartDate = _presaleStartDate;
     }
 
-    function setPresaleEndBlock(uint32 _presaleEndBlock) external onlyOwner {
-        presaleEndBlock = _presaleEndBlock;
+    function setPresaleEndDate(uint32 _presaleEndDate) external onlyOwner {
+        presaleEndDate = _presaleEndDate;
     }
 
-    function setCrowdsaleStartBlock(uint32 _crowdsaleStartBlock) external onlyOwner {
-        crowdsaleStartBlock = _crowdsaleStartBlock;
+    function setCrowdsaleStartDate(uint32 _crowdsaleStartDate) external onlyOwner {
+        crowdsaleStartDate = _crowdsaleStartDate;
     }
 
-    function setCrowdsaleEndBlock(uint32 _crowdsaleEndBlock) external onlyOwner {
-        crowdsaleEndBlock = _crowdsaleEndBlock;
+    function setCrowdsaleEndDate(uint32 _crowdsaleEndDate) external onlyOwner {
+        crowdsaleEndDate = _crowdsaleEndDate;
+    }
+
+    function debug() public view returns (uint) {
+        return now;
     }
 }
