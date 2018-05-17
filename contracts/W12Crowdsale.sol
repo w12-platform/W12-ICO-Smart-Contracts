@@ -1,9 +1,10 @@
 pragma solidity ^0.4.23;
 
 import "./W12TokenDistributor.sol";
+import "./lifecycle/ReentrancyGuard.sol";
 
 
-contract W12Crowdsale is W12TokenDistributor {
+contract W12Crowdsale is W12TokenDistributor, ReentrancyGuard {
     uint public presaleStartDate = 1526774400;
     uint public presaleEndDate = 1532131200;
     uint public crowdsaleStartDate = 1532649600;
@@ -15,10 +16,6 @@ contract W12Crowdsale is W12TokenDistributor {
     address public crowdsaleFundsWallet;
 
     enum Stage { Inactive, Presale, Crowdsale }
-
-    event Debug(uint val);
-    event Debug(string val);
-
 
     constructor() public {
         uint tokenDecimalsMultiplicator = 10 ** 18;
@@ -129,7 +126,7 @@ contract W12Crowdsale is W12TokenDistributor {
         revert();
     }
 
-    function withdrawFunds() external {
+    function withdrawFunds() external nonReentrant {
         require(crowdsaleFundsWallet == msg.sender);
 
         crowdsaleFundsWallet.transfer(address(this).balance);
@@ -149,9 +146,5 @@ contract W12Crowdsale is W12TokenDistributor {
 
     function setCrowdsaleEndDate(uint32 _crowdsaleEndDate) external onlyOwner {
         crowdsaleEndDate = _crowdsaleEndDate;
-    }
-
-    function debug() public view returns (uint) {
-        return now;
     }
 }
