@@ -82,7 +82,7 @@ contract W12Crowdsale is W12TokenDistributor, ReentrancyGuard {
         }
 
         if(now >= presaleStartDate) {
-            if(now < presaleStartDate - 1 days)
+            if(now < presaleStartDate + 1 days)
                 return Stage.FlashSale;
 
             if(now < presaleEndDate)
