@@ -15,7 +15,7 @@ contract W12Crowdsale is W12TokenDistributor, ReentrancyGuard {
 
     address public crowdsaleFundsWallet;
 
-    enum Stage { Inactive, Presale, Crowdsale }
+    enum Stage { Inactive, FlashSale, Presale, Crowdsale }
 
     constructor() public {
         uint tokenDecimalsMultiplicator = 10 ** 18;
@@ -69,6 +69,10 @@ contract W12Crowdsale is W12TokenDistributor, ReentrancyGuard {
             return 315000000000000 + 35000000000000 * crowdsaleCoef / 100;
         }
 
+        if(currentStage == Stage.FlashSale) {
+            return 245000000000000;
+        }
+
         revert();
     }
 
@@ -77,8 +81,12 @@ contract W12Crowdsale is W12TokenDistributor, ReentrancyGuard {
             return Stage.Crowdsale;
         }
 
-        if(now >= presaleStartDate && now < presaleEndDate) {
-            return Stage.Presale;
+        if(now >= presaleStartDate) {
+            if(now < presaleStartDate - 1 days)
+                return Stage.FlashSale;
+
+            if(now < presaleEndDate)
+                return Stage.Presale;
         }
 
         return Stage.Inactive;

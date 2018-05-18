@@ -14,13 +14,14 @@ contract W12TokenSale is W12TokenMinter, ReentrancyGuard {
 
     address public tokensaleFundsWallet;
     Lot[] private lots;
+    mapping(address => mapping(uint8 => uint)) private bidderParticipatedLots;
+    mapping(address => uint8[]) private bidderLots;
+
     MintableToken private token;
 
     struct Lot {
         uint expiresAt;
         uint totalBid;
-        mapping (address=>uint) bids;
-        address[] bidders;
     }
 
     constructor (uint firstAuctionExpiryDate, MintableToken _token, address _tokensaleFundsWallet) public {
@@ -43,6 +44,18 @@ contract W12TokenSale is W12TokenMinter, ReentrancyGuard {
         token.mint(address(this), dailyLimit);
     }
 
+    function isBidder() internal view returns (bool) {
+        return bidderLots[msg.sender].length > 0;
+    }
+
+    function listBidder(uint8 lotIndex) internal {
+        if(bidderParticipatedLots[msg.sender][lotIndex] == 0) {
+            bidderLots[msg.sender].push(lotIndex);
+        }
+
+        bidderParticipatedLots[msg.sender][lotIndex] = bidderParticipatedLots[msg.sender][lotIndex].add(msg.value);
+    }
+
     function createTodaysLot() internal {
         require(!lastLotEndsBefore(now));
 
@@ -58,17 +71,51 @@ contract W12TokenSale is W12TokenMinter, ReentrancyGuard {
         return lots[lots.length].expiresAt;
     }
 
+    function calculateTokenReward() public returns (uint reward) {
+        uint8[] storage lotIds = bidderLots[msg.sender];
+        uint8[] storage newLots;
+
+        for (uint8 i = 0; i < lotIds.length; i++) {
+            uint amountSent = bidderParticipatedLots[msg.sender][i];
+            Lot storage lot = lots[i];
+
+            if(amountSent == 0)
+                continue;
+
+            if(lot.expiresAt > now) {
+                newLots.push(i);
+
+                continue;
+            }
+
+            bidderParticipatedLots[msg.sender][i] = 0;
+            reward += dailyLimit.mul(amountSent).div(lot.totalBid);
+        }
+
+        bidderLots[msg.sender].length = 0;
+        bidderLots[msg.sender] = newLots;
+    }
+
     function () external payable {
+        require(msg.value > 0);
+
         if(lastLotEndsBefore(now))
             createTodaysLot();
 
-        Lot storage lot = lots[lots.length];
+        uint8 lotIndex = uint8(lots.length) - 1;
+        Lot storage lot = lots[lotIndex];
 
-        if(lot.bids[msg.sender] == 0)
-            lot.bidders.push(msg.sender);
-
-        lot.bids[msg.sender] = lot.bids[msg.sender].add(msg.value);
         lot.totalBid = lot.totalBid.add(msg.value);
+
+        listBidder(lotIndex);
+    }
+
+    function collectReward() external {
+        require(isBidder());
+
+        uint tokens = calculateTokenReward();
+
+        token.transfer(msg.sender, tokens);
     }
 
     function withdrawFunds() external nonReentrant {
