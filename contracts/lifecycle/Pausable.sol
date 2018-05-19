@@ -13,13 +13,14 @@ contract Pausable is Ownable {
     event Unpause();
 
     bool public paused = false;
-
+    
+    mapping (address=>bool) private whiteList;
 
     /**
     * @dev Modifier to make a function callable only when the contract is not paused.
     */
     modifier whenNotPaused() {
-        require(!paused || msg.sender == owner);
+        require(!paused || whiteList[msg.sender]);
 
         _;
     }
@@ -28,7 +29,7 @@ contract Pausable is Ownable {
     * @dev Modifier to make a function callable only when the contract is paused.
     */
     modifier whenPaused() {
-        require(paused || msg.sender == owner);
+        require(paused || whiteList[msg.sender]);
 
         _;
     }
@@ -49,5 +50,25 @@ contract Pausable is Ownable {
         paused = false;
 
         emit Unpause();
+    }
+
+    function addToWhiteList(address[] _whiteList) external onlyOwner {
+        require(_whiteList.length > 0);
+
+        for(uint8 i = 0; i < _whiteList.length; i++) {
+            assert(_whiteList[i] != address(0));
+
+            whiteList[_whiteList[i]] = true;
+        }
+    }
+
+    function removeFromWhiteList(address[] _blackList) external onlyOwner {
+        require(_blackList.length > 0);
+
+        for(uint8 i = 0; i < _blackList.length; i++) {
+            assert(_blackList[i] != address(0));
+
+            whiteList[_blackList[i]] = true;
+        }
     }
 }
