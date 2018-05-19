@@ -5,10 +5,10 @@ import "./lifecycle/ReentrancyGuard.sol";
 
 
 contract W12Crowdsale is W12TokenDistributor, ReentrancyGuard {
-    uint public presaleStartDate = 1526774400;
-    uint public presaleEndDate = 1532131200;
-    uint public crowdsaleStartDate = 1532649600;
-    uint public crowdsaleEndDate = 1538092800;
+    uint public presaleStartDate = 1526817600;
+    uint public presaleEndDate = 1532088000;
+    uint public crowdsaleStartDate = 1532692800;
+    uint public crowdsaleEndDate = 1538049600;
 
     uint public presaleTokenBalance = 20 * (10 ** 24);
     uint public crowdsaleTokenBalance = 80 * (10 ** 24);
@@ -65,12 +65,12 @@ contract W12Crowdsale is W12TokenDistributor, ReentrancyGuard {
         if(currentStage == Stage.Crowdsale) {
             currentSaleTime = now - crowdsaleStartDate;
             uint crowdsaleCoef = currentSaleTime * 100 / (crowdsaleEndDate - crowdsaleStartDate);
-            
+
             return 315000000000000 + 35000000000000 * crowdsaleCoef / 100;
         }
 
         if(currentStage == Stage.FlashSale) {
-            return 245000000000000;
+            return 234500000000000;
         }
 
         revert();
@@ -115,7 +115,7 @@ contract W12Crowdsale is W12TokenDistributor, ReentrancyGuard {
     }
 
     function advanceStage(uint tokensBought, Stage currentStage) internal {
-        if(currentStage == Stage.Presale) {
+        if(currentStage == Stage.Presale || currentStage == Stage.FlashSale) {
             if(tokensBought <= presaleTokenBalance)
             {
                 presaleTokenBalance -= tokensBought;

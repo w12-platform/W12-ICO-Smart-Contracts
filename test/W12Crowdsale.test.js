@@ -2,6 +2,7 @@ import EVMRevert from './helpers/EVMRevert';
 import latestTime from './helpers/latestTime';
 import ether from './helpers/ether';
 import { increaseTimeTo, duration } from './helpers/increaseTime';
+import moment from 'moment';
 
 const BigNumber = web3.BigNumber;
 
@@ -23,11 +24,11 @@ const PARTNERS_ADDRESS       = '0x0000000000000000000000000000000000000005';
 const BOUNTY_ADDRESS         = '0x0000000000000000000000000000000000000006';
 const AIRDROP_ADDRESS        = '0x0000000000000000000000000000000000000007';
 
-const PRESALE_START_DATE = 1526774400;
-const PRESALE_END_DATE = 1532131200;
+const PRESALE_START_DATE = 1526817600;
+const PRESALE_END_DATE = 1532088000;
 
-const CROWDSALE_START_DATE = 1532649600;
-const CROWDSALE_END_DATE = 1538092800;
+const CROWDSALE_START_DATE = 1532692800;
+const CROWDSALE_END_DATE = 1538049600;
 
 // Crowdsale parameters ends <---
 
@@ -94,6 +95,46 @@ contract('W12Crowdsale', async (accounts) => {
             );
         });
 
+        it('should change sale dates and activates specific stage when instructed', async () => {
+            let stage;
+            let rate;
+
+            stage = await sut.getStage();
+            stage.should.bignumber.equal(0);
+
+            const latestTime = await web3.eth.getBlock('latest').timestamp;
+
+            await sut.setPresaleStartDate(latestTime).should.be.fulfilled;
+            await sut.setPresaleEndDate(latestTime + 1000000).should.be.fulfilled;
+
+            stage = await sut.getStage();
+            rate = await sut.getCurrentRate();
+
+            stage.should.bignumber.equal(1);
+            rate.should.bignumber.equal(234500000000000);
+
+            await sut.setPresaleStartDate(latestTime - 2000000).should.be.fulfilled;
+            await sut.setPresaleEndDate(latestTime + 1000000).should.be.fulfilled
+
+            stage = await sut.getStage();
+            rate = await sut.getCurrentRate();
+
+            stage.should.bignumber.equal(2);
+            rate.should.bignumber.gte(262500000000000);
+            rate.should.bignumber.lte(297500000000000);
+
+            await sut.setPresaleEndDate(latestTime - 1000).should.be.fulfilled
+            await sut.setCrowdsaleStartDate(latestTime).should.be.fulfilled;
+            await sut.setCrowdsaleEndDate(latestTime + 1000000).should.be.fulfilled;
+
+            stage = await sut.getStage();
+            rate = await sut.getCurrentRate();
+
+            stage.should.bignumber.equal(3);
+            rate.should.bignumber.gte(315000000000000);
+            rate.should.bignumber.lte(350000000000000);
+        });
+
         describe('when presale is on', async () => {
             const presaleLenght = duration.days(6 * 7) * 1000;
             const oneEther = ether(1);
@@ -103,7 +144,6 @@ contract('W12Crowdsale', async (accounts) => {
 
                 await sut.setPresaleStartDate(latestTime);
                 await sut.setPresaleEndDate(latestTime + 1000000);
-
             });
 
             it('should receive Ether', async () => {
@@ -124,7 +164,7 @@ contract('W12Crowdsale', async (accounts) => {
             });
 
             it('should sell tokens with maximum discount at day one', async () => {
-                const expectedTokensBought = oneEther.div(ether(0.0002625)).mul(tokenDecimalsMultiplicator);
+                const expectedTokensBought = oneEther.div(ether(0.0002345)).mul(tokenDecimalsMultiplicator);
 
                 await sut.sendTransaction({ value: oneEther });
                 const actualTokensBought = await token.balanceOf(accounts[0]);
@@ -135,17 +175,15 @@ contract('W12Crowdsale', async (accounts) => {
             it('should sell presale cap in a single transaction with maximum discount at day one', async () => {
                 const expectedTokensBought = million.mul(20).mul(tokenDecimalsMultiplicator);
 
-                await sut.sendTransaction({ value: oneEther.mul(5250) }).should.be.fulfilled;
+                await sut.sendTransaction({ value: oneEther.mul(4690) }).should.be.fulfilled;
                 const actualTokensBought = await token.balanceOf(accounts[0]);
 
                 actualTokensBought.should.bignumber.equal(expectedTokensBought);
                 (await sut.presaleTokenBalance()).should.bignumber.equal(0);
             });
 
-            it('should not sell more than presale cap and advance to crowdsale stage', async () => {
-                const expectedTokensBought = oneEther.mul(6000).div(ether(0.0002625)).mul(tokenDecimalsMultiplicator);
-
-                await sut.sendTransaction({ value: oneEther.mul(6000) }).should.be.rejected;
+            it('should not sell more than presale cap', async () => {
+                await sut.sendTransaction({ value: oneEther.mul(4691) }).should.be.rejected;
             });
         });
     });
