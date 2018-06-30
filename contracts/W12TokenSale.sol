@@ -41,7 +41,7 @@ contract W12TokenSale is W12TokenMinter, ReentrancyGuard {
 
         uint lotNumber = lots.length++;
         lots[lotNumber].expiresAt = expiryDate;
-        token.mint(address(this), dailyLimit);
+        token.mint(address(this), dailyLimit); // you have a permission for mint, but it's daily amount, what about another days?
     }
 
     function isBidder() internal view returns (bool) {
@@ -99,8 +99,9 @@ contract W12TokenSale is W12TokenMinter, ReentrancyGuard {
     function () external payable {
         require(msg.value > 0);
 
-        if(lastLotEndsBefore(now))
-            createTodaysLot();
+        if(lastLotEndsBefore(now)) // it means => lots[lots.length].expiresAt < now
+            createTodaysLot(); // this function requires: !lastLotEndsBefore(now); it means => !(lots[lots.length].expiresAt < now)
+            // so confused
 
         uint8 lotIndex = uint8(lots.length) - 1;
         Lot storage lot = lots[lotIndex];
@@ -123,4 +124,57 @@ contract W12TokenSale is W12TokenMinter, ReentrancyGuard {
 
         tokensaleFundsWallet.transfer(address(this).balance);
     }
+}
+
+
+
+
+
+
+// Каждые сутки в течение 1000 дней smart контракт будет выпускать и продавать 140000 токенов (0,035% от всей эмиссии). 
+// Стоимость токена на Token Sale будет определяться по формуле Price = K/140000, 
+// где K = количество средств переведённых на smart контракт за сутки.
+
+
+contract GG {
+
+    uint256 public startBlock;
+    uint256 public dayTimeInBlocks = 6171; // 14 blocks per second => 60*60*24 = 86400 => 86400 / 14 = 6171 blocks per day;
+    uint256 public currentDay;
+    uint public dayLimit = 140000 * (10 ** decimals);
+    
+    mapping (uint256 => uint256) limitLeft;
+    mapping (uint256 => uint256) dayPrice;
+    mapping (uint256 =< bool) newDay;
+
+    constructor() {
+        startBlock = block.number; // for example 6 000 000;
+    }
+    
+    function() external {
+    
+        currentDay = (block.numebr - startBlock) / dayTimeInBlocks; // get day number, for example => 5
+        require(currentDay <= 1000); // 1000 days
+        
+        if (newDay[currentDay] == false) {
+            
+            ///////
+            // what should to do with non-selling token from yesterday?
+            ///////
+           
+            token.mint(address(this), dayLimit);
+            newDay[currentDay] = true;
+            
+        }
+        
+        dayPrice[currentDay] = dayPrice[currentDay] + msg.value; // get K for price formula
+        uint tokenAmount = dayPrice[currentDay] / dayLimit; // calculate tokens amount
+        
+        limitLeft[currentDay] = limitLeft[currentDay] - tokenAmount; // reduce dayLimit tokens
+        require(limitLeft[currentDay] < dayLimit); // check if today contract sells more than day limit
+        
+        token.transfer(msg.sender, tokenAmount); // send tokens to buyer
+        
+    }
+    
 }
