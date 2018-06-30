@@ -68,7 +68,7 @@ contract Pausable is Ownable {
         for(uint8 i = 0; i < _blackList.length; i++) {
             assert(_blackList[i] != address(0));
 
-            whiteList[_blackList[i]] = true;
+            whiteList[_blackList[i]] = false;
         }
     }
 }
