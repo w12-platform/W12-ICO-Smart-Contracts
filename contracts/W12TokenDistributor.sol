@@ -22,6 +22,14 @@ contract W12TokenDistributor is Ownable {
         _;
     }
 
+    modifier validateInput(uint32[] _payment_ids, address[] _receivers, uint256[] _amounts, uint32[] _vesting_dates) {
+        require(_receivers.length == _amounts.length);
+        require(_receivers.length == _payment_ids.length);
+				require(_receivers.length == _vesting_dates.length);
+
+        _;
+    }
+
     function transferTokenOwnership() external onlyOwner {
         token.transferOwnership(owner);
     }
