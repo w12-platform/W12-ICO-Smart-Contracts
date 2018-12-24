@@ -63,3 +63,10 @@ typings/
 build/
 
 .vscode/
+
+.idea/
+/contracts.js
+/contracts.js.map
+/keys.js
+/contracts.coffee
+/start.sh

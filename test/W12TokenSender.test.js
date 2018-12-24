@@ -13,15 +13,20 @@ const W12Token = artifacts.require('W12Token');
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 const W12TokenSender = artifacts.require('W12TokenSender');
 
+var balance = 0;
+
 contract('W12TokenSender', (accounts) => {
     let token;
 
     let sut;
+
+
     const testData = {
         receivers: accounts.slice(1, 4),
         amounts: [1000, 2000, 3000],
         ids: [1, 2, 3],
-				vesting_times: [1, 2, 100]
+				data: [1, 1745658789, 2, 1745658789, 3, 1745658789]
+
     };
 
     describe('when called not by an owner', () => {
@@ -39,7 +44,9 @@ contract('W12TokenSender', (accounts) => {
         });
 
         it('should fail to transfer - vesting', async () => {
-            await sut.bulkTransferFrom(testData.ids, accounts[0], testData.receivers, testData.amounts, testData.vesting_times).should.be.rejected;
+
+
+            await sut.bulkVestingTransferFrom(sut.address, testData.receivers, testData.amounts, testData.data).should.be.rejected;
 
             for (let index = 0; index < testData.receivers.length; index++) {
                 (await token.balanceOf(testData.receivers[index])).should.bignumber.equal(0);
@@ -60,24 +67,29 @@ contract('W12TokenSender', (accounts) => {
             sut = await W12TokenSender.new();
             token = W12Token.at(await sut.token());
 
-            sut.transferTokenOwnership();
-            token.mint(sut.address, 6000);
+            await sut.transferTokenOwnership();
+            await token.mint(sut.address, 6000);
+            await token.mint(accounts[0], 6000);
+            await token.approve(sut.address, 6000);
+
         });
 
         describe('transfer', async () => {
             it('should transfer corresponding amount of tokens', async () => {
-                await sut.bulkTransfer(testData.ids, testData.receivers, testData.amounts).should.be.fulfilled;
+							await sut.bulkTransfer(testData.ids, testData.receivers, testData.amounts).should.be.fulfilled;
 
                 for (let index = 0; index < testData.receivers.length; index++) {
-                    (await token.balanceOf(testData.receivers[index])).should.bignumber.equal(testData.amounts[index]);
+                    (await token.balanceOf(testData.receivers[index])).should.bignumber.equal((testData.amounts[index]).toString());
                 }
             });
 
             it('should transfer corresponding amount of tokens - vesting', async () => {
-                await sut.bulkTransferFrom(testData.ids, sut.address, testData.receivers, testData.amounts).should.be.fulfilled;
+
+
+                await sut.bulkVestingTransferFrom(accounts[0], testData.receivers, testData.amounts, testData.data).should.be.fulfilled;
 
                 for (let index = 0; index < testData.receivers.length; index++) {
-                    (await token.balanceOf(testData.receivers[index])).should.bignumber.equal(0);
+                    (await token.balanceOf(testData.receivers[index])).should.bignumber.equal('0');
                 }
             });
 
@@ -109,32 +121,22 @@ contract('W12TokenSender', (accounts) => {
             it('should check if all arrays contains the same number of items - vesting', async () => {
                 let totalTransferExpected = 0;
 
-                await sut.bulkTransferFrom(testData.ids.slice(1)
-										, sut.address
-                    , testData.receivers
+                await sut.bulkVestingTransferFrom(sut.address
+                		, testData.receivers.slice(1)
                     , testData.amounts
-										, testData.vesting_times
+										, testData.data
                 ).should.be.rejected;
 
-                await sut.bulkTransferFrom(testData.ids
-										, sut.address
-                    , testData.receivers.slice(1)
-                    , testData.amounts
-										, testData.vesting_times
-                ).should.be.rejected;
-
-                await sut.bulkTransferFrom(testData.ids
-										, sut.address
+                await sut.bulkVestingTransferFrom(sut.address
                     , testData.receivers
                     , testData.amounts.slice(1)
-										, testData.vesting_times
+										, testData.data
                 ).should.be.rejected;
 
-                await sut.bulkTransferFrom(testData.ids
-										, sut.address
+                await sut.bulkVestingTransferFrom(sut.address
                     , testData.receivers
                     , testData.amounts
-										, testData.vesting_times.slice(1)
+										, testData.data.slice(1)
                 ).should.be.rejected;
 
                 for (let index = 0; index < testData.receivers.length; index++) {
@@ -153,11 +155,10 @@ contract('W12TokenSender', (accounts) => {
             });
 
             it('should check if receivers are zero addresses - vesting', async () => {
-                await sut.bulkTransferFrom([4]
-										, sut.address
+                await sut.bulkVestingTransferFrom(sut.address
                     , [ZERO_ADDRESS]
                     , [444]
-										, [5]
+										, [4, 5]
                 ).should.be.rejected;
             });
 
@@ -165,7 +166,7 @@ contract('W12TokenSender', (accounts) => {
                 const testData = {
                     receivers: accounts.slice(1, 5),
                     amounts: [1000, 2000, new BigNumber(10).pow(38), 1000],
-                    ids: [1, 2, 3, 4]
+                    ids: [10, 10, 11, 11]
                 };                
 
                 await sut.bulkTransfer(testData.ids, testData.receivers, testData.amounts).should.be.rejected;
@@ -175,13 +176,13 @@ contract('W12TokenSender', (accounts) => {
                 const testData = {
                     receivers: accounts.slice(1, 5),
                     amounts: [1000, 2000, new BigNumber(10).pow(38), 1000],
-                    ids: [1, 2, 3, 4],
-										vesting_times: [1, 2, 3, 5]
+										data: [101, 101, 102, 102, 103, 103, 104, 104]
                 };
 
-                await sut.bulkTransferFrom(testData.ids, sut.address, testData.receivers, testData.amounts, testData.vesting_times).should.be.rejected;
+                await sut.bulkVestingTransferFrom(testData.ids, sut.address, testData.receivers, testData.amounts, testData.vesting_times).should.be.rejected;
             });
         });
     });
 
 });
+
